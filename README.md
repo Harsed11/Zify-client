@@ -32,7 +32,7 @@ Supports VLESS + Reality / gRPC / TCP, subscription import, split tunneling, Kil
 
 ### Download
 
-Download the latest `ZifyClient.exe` from [Releases](https://github.com/Harsed11/ZifyVPN/releases).
+Download the latest `ZifyClient.exe` from [Releases](https://github.com/Harsed11/Zify-client/releases).
 
 ### Build from source
 
