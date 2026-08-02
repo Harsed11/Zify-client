@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.bak
+*.exe.bak
+vpn_configurator/bin/xray.exe.bak
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Project data (created at runtime)
+data/storage.json
+data/logs/
+
+# Environment
+.env
+venv/
+.venv/

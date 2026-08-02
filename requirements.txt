@@ -1,0 +1,6 @@
+PySide6==6.11.1
+grpcio==1.83.0
+protobuf==7.35.1
+
+# Development-only (regenerating gRPC stubs from core/proto/stats.proto):
+# grpcio-tools==1.83.0

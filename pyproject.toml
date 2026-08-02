@@ -1,0 +1,36 @@
+[project]
+name = "zify-vpn"
+version = "1.0.0"
+description = "Desktop VPN client powered by Xray-core"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Harsed11"},
+]
+dependencies = [
+    "PySide6>=6.5.0",
+    "grpcio>=1.60.0",
+    "protobuf>=5.26.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-qt>=4.4.0",
+    "ruff>=0.4.0",
+]
+
+[project.scripts]
+zify-vpn = "vpn_configurator.main:main"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+qt_api = "pyside6"
