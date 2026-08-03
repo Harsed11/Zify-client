@@ -69,8 +69,8 @@ class XRayThread(QThread):
         if getattr(sys, "frozen", False):
             candidates.append(os.path.join(sys._MEIPASS, "bin", "xray.exe"))
             candidates.append(os.path.join(os.path.dirname(sys.executable), "bin", "xray.exe"))
-        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        bin_dir = os.path.join(base, "bin")
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        bin_dir = os.path.join(base, "vpn_configurator", "bin")
         for name in ("xray.exe", "xray"):
             candidates.append(os.path.join(bin_dir, name))
         candidates.append(os.path.join(bin_dir, "xray.exe"))
