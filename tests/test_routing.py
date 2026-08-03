@@ -61,10 +61,10 @@ def test_routing_count_by_mode(tmp_path):
     all_rules = _write(tmp_path, _node(), {"mode": "all", "custom_domains": []})["routing"]["rules"]
     bypass = _write(tmp_path, _node(), {"mode": "bypass", "custom_domains": []})["routing"]["rules"]
     lan = _write(tmp_path, _node(), {"mode": "lan", "custom_domains": []})["routing"]["rules"]
-    # rules: api + ipv6 (proxy+private) + private + catchall-proxy
-    assert len(all_rules) == 5
-    assert len(bypass) == 6  # adds geosite:category-ru
-    assert len(lan) == 5
+    # rules: api + ipv6(proxy) + private + catchall-proxy
+    assert len(all_rules) == 4
+    assert len(bypass) == 5  # adds geosite:category-ru
+    assert len(lan) == 4
 
 
 def test_api_inbound_and_routing(tmp_path):
@@ -98,4 +98,4 @@ def test_reality_settings_injected(tmp_path):
 def test_outbounds_proxy_and_direct(tmp_path):
     data = _write(tmp_path, _node(), {"mode": "all", "custom_domains": []})
     tags = [o.get("tag") for o in data["outbounds"]]
-    assert tags == ["proxy", "direct"]
+    assert tags == ["proxy", "direct", "block"]

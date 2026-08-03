@@ -82,8 +82,7 @@ def generate_dns_config(dns_config):
     servers = []
     
     if dns == "system":
-        # Использовать системный DNS (через hosts)
-        servers = ["127.0.0.1"]
+        servers = ["localhost"]
     elif dns == "custom":
         # Пользовательский DNS
         if custom_dns:
@@ -125,5 +124,4 @@ def generate_dns_config(dns_config):
     
     return {
         "servers": servers,
-        "tag": "dns-in"
     }, dns_rules

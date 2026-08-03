@@ -86,33 +86,23 @@ def generate_ipv6_rules(ipv6_config):
     """Сгенерировать routing rules для IPv6."""
     enabled = ipv6_config.get("enabled", True)
     routing_v6 = ipv6_config.get("routing_v6", True)
-    prefer_v6 = ipv6_config.get("prefer_v6", False)
     
     rules = []
     
     if not enabled:
-        # Блокируем весь IPv6 трафик
         rules.append({
             "type": "field",
-            "ip": ["geoip:private", "geoip:ipv6"],
+            "ip": ["geoip:ipv6"],
             "outboundTag": "block"
         })
         return rules
     
     if routing_v6:
-        # IPv6 трафик через VPN
         rules.append({
             "type": "field",
             "ip": ["geoip:ipv6"],
             "outboundTag": "proxy"
         })
-    
-    # Приватные IPv6 адреса — напрямую
-    rules.append({
-        "type": "field",
-        "ip": ["geoip:private"],
-        "outboundTag": "direct"
-    })
     
     return rules
 

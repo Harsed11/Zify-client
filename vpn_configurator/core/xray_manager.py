@@ -2,6 +2,7 @@ import os
 import json
 import subprocess
 import sys
+import tempfile
 from PySide6.QtCore import QThread, Signal
 
 from vpn_configurator.core.split_tunnel import load_split_apps, generate_process_rules
@@ -30,6 +31,10 @@ class XRayThread(QThread):
         xray_path = self._find_xray()
         if not xray_path:
             self.error.emit("xray.exe not found in bin/ directory")
+            return
+
+        if not self.config_file:
+            self.error.emit("No config file specified")
             return
 
         self._write_config()
@@ -63,7 +68,8 @@ class XRayThread(QThread):
                 self.log_line.emit(text)
 
         if not self._stop_flag:
-            self.error.emit("Xray process exited unexpectedly")
+            rc = self.process.returncode if self.process else "?"
+            self.error.emit(f"Xray process exited unexpectedly (code {rc})")
 
     def _find_xray(self):
         candidates = []
@@ -74,7 +80,6 @@ class XRayThread(QThread):
         bin_dir = os.path.join(base, "vpn_configurator", "bin")
         for name in ("xray.exe", "xray"):
             candidates.append(os.path.join(bin_dir, name))
-        candidates.append(os.path.join(bin_dir, "xray.exe"))
         for path in candidates:
             if path and os.path.isfile(path):
                 return path
@@ -87,7 +92,7 @@ class XRayThread(QThread):
         n = self.node_data
         proto = n.get("type", "vmess")
         host = n.get("host", "127.0.0.1")
-        port = n.get("port", 443)
+        port = int(n.get("port", 443))
         uuid = n.get("uuid", "")
         network = n.get("network", "tcp")
         security = n.get("security", "none")
@@ -115,7 +120,7 @@ class XRayThread(QThread):
             reality_settings = {
                 "serverName": sni or host,
                 "show": False,
-                "fingerprint": n.get("fp") or "",
+                "fingerprint": n.get("fp") or "chrome",
                 "publicKey": n.get("pbk") or "",
                 "shortId": n.get("sid") or "",
             }
@@ -134,7 +139,17 @@ class XRayThread(QThread):
             grpc_settings = {}
             if path:
                 grpc_settings["serviceName"] = path
+            authority = n.get("authority", "")
+            if authority:
+                grpc_settings["authority"] = authority
             outbound["streamSettings"]["grpcSettings"] = grpc_settings
+        elif network in ("h2", "http"):
+            h2_settings = {}
+            if path:
+                h2_settings["path"] = path
+            if sni:
+                h2_settings["host"] = [sni]
+            outbound["streamSettings"]["httpSettings"] = h2_settings
 
         if proto == "vmess":
             outbound["settings"] = {
@@ -190,6 +205,13 @@ class XRayThread(QThread):
                     }
                 ]
             }
+        else:
+            self.error.emit(f"Unsupported protocol: {proto}")
+            return
+
+        socks_port = 10808
+        http_port = 10809
+        api_port = 15490
 
         config_data = {
             "log": {"loglevel": "warning"},
@@ -203,62 +225,67 @@ class XRayThread(QThread):
             "inbounds": [
                 {
                     "tag": "socks-in",
-                    "port": 10808,
+                    "port": socks_port,
+                    "listen": "127.0.0.1",
                     "protocol": "socks",
                     "settings": {
                         "udp": True,
                         "auth": "noauth",
                     },
+                    "sniffing": {
+                        "enabled": True,
+                        "destOverride": ["http", "tls"],
+                    },
                 },
                 {
                     "tag": "http-in",
-                    "port": 10809,
+                    "port": http_port,
+                    "listen": "127.0.0.1",
                     "protocol": "http",
                     "settings": {},
                 },
                 {
                     "tag": "api",
                     "listen": "127.0.0.1",
-                    "port": 15490,
+                    "port": api_port,
                     "protocol": "dokodemo-door",
-                    "settings": {"address": "127.0.0.1", "port": 15490},
+                    "settings": {"address": "127.0.0.1", "port": api_port},
                 },
             ] + self._tun_inbounds(),
             "outbounds": [
                 outbound,
                 {"tag": "direct", "protocol": "freedom"},
+                {"tag": "block", "protocol": "blackhole"},
             ],
         }
 
-        # DNS configuration
         dns_config, dns_rules = generate_dns_config(self._dns_config)
         config_data["dns"] = dns_config
+
         rules = [{"type": "field", "inboundTag": ["api"], "outboundTag": "api"}]
         rules.extend(dns_rules)
-        
+
         if self.tun_mode:
             rules.append(
                 {"type": "field", "inboundTag": ["tun-in"], "network": "tcp,udp", "outboundTag": "proxy"}
             )
-        
-        # Split tunneling rules
+
         split_rules = generate_process_rules(
             self._split_config.get("apps", []),
             self._split_config.get("mode", "exclude")
         )
         rules.extend(split_rules)
-        
-        # IPv6 rules
+
         ipv6_rules = generate_ipv6_rules(self._ipv6_config)
         rules.extend(ipv6_rules)
-        
+
         rules.extend(self._build_routing_rules())
         config_data["routing"] = {
             "domainStrategy": "AsIs",
             "rules": rules,
         }
 
-        with open(self.config_file, "w") as f:
+        with open(self.config_file, "w", encoding="utf-8") as f:
             json.dump(config_data, f, indent=4)
 
     def _tun_inbounds(self):

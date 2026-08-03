@@ -3384,6 +3384,8 @@ class MainWindow(QWidget):
             )
 
     def _teardown_connection_threads(self):
+        if hasattr(self, "_health_interval_timer"):
+            self._health_interval_timer.stop()
         if self.xray_thread:
             self.xray_thread.stop()
             self.xray_thread.wait(3000)
@@ -3393,6 +3395,7 @@ class MainWindow(QWidget):
             self.stats_thread = None
         if self._health_thread is not None:
             self._health_thread.terminate()
+            self._health_thread.wait(2000)
             self._health_thread = None
         self._health_status = None
         self._last_check_ip = None

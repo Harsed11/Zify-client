@@ -71,7 +71,7 @@ def parse_subscription_all(url):
 
     for line in lines:
         try:
-            result = parse_config(line)
+            result = parse_config(line, _from_sub=True)
             if "subscription_url" not in result:
                 result["subscription_url"] = url
             results.append(result)
@@ -81,12 +81,14 @@ def parse_subscription_all(url):
     return results
 
 
-def parse_config(url):
+def parse_config(url, _from_sub=False):
     url = url.strip()
     parsed = urlparse(url)
     scheme = parsed.scheme.lower()
 
     if scheme in ("http", "https"):
+        if _from_sub:
+            raise ValueError("Nested subscription URLs not supported")
         return parse_subscription(url)
     elif scheme == "vless":
         return parse_vless(url)
@@ -105,14 +107,19 @@ def parse_vless(url):
     q = _getq(parse_qs(parsed.query))
     fragment = (parsed.fragment or "").strip()
 
+    network = q.get("type", "tcp")
+    path = unquote(q.get("path", ""))
+    if network == "grpc" and not path:
+        path = unquote(q.get("serviceName", ""))
+
     return {
         "type": "vless",
         "uuid": unquote(parsed.username) if parsed.username else q.get("uuid", ""),
         "host": parsed.hostname or "",
         "port": parsed.port or 443,
-        "network": q.get("type", "tcp"),
+        "network": network,
         "security": q.get("security", "none"),
-        "path": unquote(q.get("path", "")),
+        "path": path,
         "sni": q.get("sni", q.get("host", "")),
         "alpn": q.get("alpn", ""),
         "fp": q.get("fp", ""),
@@ -121,6 +128,7 @@ def parse_vless(url):
         "spx": q.get("spx", ""),
         "encryption": q.get("encryption", "none"),
         "flow": q.get("flow", ""),
+        "authority": unquote(q.get("authority", "")),
         "ps": unquote(fragment),
         "raw_url": url,
     }
