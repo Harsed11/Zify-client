@@ -43,6 +43,7 @@ class XRayThread(QThread):
                 [xray_path, "run", "-config", self.config_file],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                cwd=os.path.dirname(xray_path),
                 **kwargs,
             )
 
